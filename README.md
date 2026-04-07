@@ -37,6 +37,11 @@ from this directory. (default: `~/.pycmd`)
 When using the default pycmd setup, this specifies the number of logs to retain
 when pruning old logs. Set to a negative value to disable pruning. (default: 10)
 
+#### PYCMD_OPTIONS
+This variable is the same as the `--pycmd` CLI flag. It may be used to define
+global/default settings. These settings are applied first and may be overridden by
+CLI arguments.
+
 ### Configuration Options
 Pycmd settings provide a way to share options between pycmd modules However, most
 control over the behavior of a script will typically happen via standard CLI

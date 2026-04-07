@@ -119,6 +119,7 @@ def module_main() -> None:
 
     # Set args so the main module can read argv as if it were executed directly
     sys.argv = [str(pycmd.info.source.resolve()), *args]
+    pycmd.settings.update_user(os.getenv("PYCMD_OPTIONS"))
     pycmd.settings.update_user(pycmd_args.pycmd)
 
     import pycmd.main as module

@@ -29,13 +29,17 @@ def _parse_value(s: str):
         return s
 
 
-def update_user(user_settings: "Iterable[str]") -> None:
+def update_user(user_settings: "str | Iterable[str] | None") -> None:
     """Add the given configuration options to the user settings."""
     if not user_settings:
         return
 
-    options = (option.strip() for updates in user_settings
-               for option in updates.split(","))
+    if isinstance(user_settings, str):
+        options = (option.strip() for option in user_settings.split(","))
+    else:
+        options = (option.strip() for updates in user_settings
+                   for option in updates.split(","))
+
     for option in options:
         key, eq, val = option.partition("=")
         if eq:
