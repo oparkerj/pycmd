@@ -60,9 +60,9 @@ def main(module: "ModuleType") -> None:
                      "Module missing 'main' function",
                      "At most one 'main' function is permitted in a module")
 
-    pycmd.settings.reset()
+    pycmd.settings.clear()
     pycmd.settings.update(pycmd.meta.get(main_func, "settings"))
-    pycmd.settings.apply_user()
+    pycmd.settings.update(pycmd.settings.user)
 
     try:
         with pycmd.log.init_hook(), pycmd.log.init_file():

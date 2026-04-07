@@ -47,14 +47,9 @@ def update_user(user_settings: "Iterable[str]") -> None:
         user[key] = val
 
 
-def reset() -> None:
+def clear() -> None:
     """Clear current settings."""
     values.clear()
-
-
-def apply_user() -> None:
-    """Apply user settings to the current settings."""
-    values.update(user)
 
 
 def get(key, default=None):
