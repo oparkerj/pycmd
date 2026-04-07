@@ -113,7 +113,6 @@ def module_main() -> None:
     parser.add_argument("script")
     pycmd_args, args = parser.parse_known_args()
 
-
     pycmd.info.source = Path(pycmd_args.script)
     if not pycmd.info.source.is_file():
         parser.error(f"File doesn't exist: {pycmd.info.source}")
