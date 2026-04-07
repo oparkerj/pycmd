@@ -3,6 +3,7 @@ import logging
 import os
 import pycmd
 import sys
+import traceback
 
 from contextlib import contextmanager
 from pathlib import Path
@@ -92,6 +93,15 @@ def init_file(path: str | os.PathLike | None,
         logger.removeHandler(handler)
         handler.close()
         temp_path.replace(path)
+
+
+@contextmanager
+def exception_logger():
+    try:
+        yield
+    except Exception:
+        get_logger().error(traceback.format_exc())
+        raise
 
 
 def init_log_dir() -> Path | None:

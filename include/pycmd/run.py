@@ -73,7 +73,9 @@ def main(module: "ModuleType") -> None:
         log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}.log"
 
     try:
-        with pycmd.log.init_hook(), pycmd.log.init_file(log_file, log_level):
+        with (pycmd.log.init_hook(),
+              pycmd.log.init_file(log_file, log_level),
+              pycmd.log.exception_logger()):
             pycmd.log.write(f"PYCMD: {pycmd.proc.quote_all(sys.argv)}")
             pycmd.log.write(f"CWD: {os.getcwd()}")
             pycmd.log.write("BEGIN")
