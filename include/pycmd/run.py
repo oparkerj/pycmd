@@ -64,8 +64,16 @@ def main(module: "ModuleType") -> None:
     pycmd.settings.update(pycmd.meta.get(main_func, "settings"))
     pycmd.settings.update(pycmd.settings.user)
 
+    log_file = None
+    log_level = pycmd.settings.get("log_level", "NOTSET")
+    
+    if (pycmd.settings.get("log", True)
+            and (log_dir := pycmd.log.init_log_dir())):
+        timestamp = DateTime.now().strftime("%Y%m%d%H%M%S%f")
+        log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}.log"
+
     try:
-        with pycmd.log.init_hook(), pycmd.log.init_file():
+        with pycmd.log.init_hook(), pycmd.log.init_file(log_file, log_level):
             pycmd.log.write(f"PYCMD: {pycmd.proc.quote_all(sys.argv)}")
             pycmd.log.write(f"CWD: {os.getcwd()}")
             pycmd.log.write("BEGIN")

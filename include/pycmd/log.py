@@ -5,13 +5,14 @@ import pycmd
 import sys
 
 from contextlib import contextmanager
-from datetime import datetime as DateTime
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Generator
+
+TEMP_SUFFIX = ".tmp"
 
 # Custom log level for pycmd internal logs
 PYCMD = logging.INFO - 5
@@ -63,38 +64,34 @@ def init_hook() -> "Generator[None, None, None]":
 
 
 @contextmanager
-def init_file() -> "Generator[Path | None, None, None]":
+def init_file(path: str | os.PathLike | None,
+              level: int | str = logging.NOTSET) \
+        -> "Generator[Path | None, None, None]":
     """
     Context manager which sets up a file handler for the pycmd logger.
-    If the log is disabled via options, this manager does nothing.
+    If the path is None, this manager does nothing.
     """
-    if not pycmd.settings.get("log", True):
+    if not path:
         yield
         return
 
-    log_dir = init_log_dir()
-    if not log_dir:
-        yield
-        return
-
-    timestamp = DateTime.now().strftime("%Y%m%d%H%M%S%f")
-    path = log_dir / f"{timestamp}_{pycmd.info.source.name}.log.tmp"
+    temp_path = Path(path).with_suffix(TEMP_SUFFIX)
 
     # Set up file handler
     logger = get_logger()
-    handler = logging.FileHandler(path)
+    handler = logging.FileHandler(temp_path)
     formatter = logging.Formatter("[%(asctime)s %(levelname)s] %(message)s")
     handler.setFormatter(formatter)
-    handler.setLevel(pycmd.settings.get("log_level", logging.NOTSET))
+    handler.setLevel(level)
     logger.addHandler(handler)
 
     try:
-        yield path
+        yield temp_path
     finally:
         # Close file handler and remove temporary extension
         logger.removeHandler(handler)
         handler.close()
-        path.replace(path.with_suffix(""))
+        temp_path.replace(path)
 
 
 def init_log_dir() -> Path | None:
