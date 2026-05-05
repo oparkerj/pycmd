@@ -5,7 +5,7 @@ from . import proc
 from . import run
 from . import settings
 
-args = None
+args: list[str] | None = None
 get_logger = log.get_logger
 exec = meta.exec
 main = meta.main

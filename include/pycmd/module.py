@@ -38,6 +38,8 @@ class Finder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
         # Provide main module
         if fullname == MAIN:
+            if pycmd.info.source is None:
+                return None
             return self._spec(fullname, str(pycmd.info.source))
 
         # Check for pycmd submodule
@@ -48,14 +50,15 @@ class Finder(importlib.abc.MetaPathFinder):
         if "." in name:
             return None
 
-        module_dir = pycmd.info.source.parent
-        module_dir_searched = False
+        source = pycmd.info.source
+        module_dir = source.parent if source is not None else None
+        module_dir_searched = module_dir is None
 
         # Search the directories specified in the pycmd path
         for d in path:
             p = Path(d)
             if p.is_dir():
-                if p.samefile(module_dir):
+                if module_dir is not None and p.samefile(module_dir):
                     module_dir_searched = True
                 expected = p / name
                 if expected.is_file():

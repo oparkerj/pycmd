@@ -18,8 +18,9 @@ class MainModuleInfo:
     """Holds information about the main pycmd module."""
 
     def __init__(self):
-        self.source = None
-        self.module = None
+        self.module: "ModuleType" = sys.modules["__main__"]
+        source = getattr(self.module, "__file__", None)
+        self.source: Path | None = Path(source) if source else None
 
 
 def _one[T](gen: "Generator[T, None, None]",
@@ -60,6 +61,9 @@ def main(module: "ModuleType") -> None:
                      "Module missing 'main' function",
                      "At most one 'main' function is permitted in a module")
 
+    if not callable(main_func):
+        raise TypeError(f"'{main_func}' is not callable")
+
     pycmd.settings.clear()
     pycmd.settings.update(pycmd.meta.get(main_func, "settings"))
     pycmd.settings.update(pycmd.settings.user)
@@ -70,7 +74,10 @@ def main(module: "ModuleType") -> None:
     if (pycmd.settings.get("log", True)
             and (log_dir := pycmd.log.init_log_dir())):
         timestamp = DateTime.now().strftime("%Y%m%d%H%M%S%f")
-        log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}.log"
+        if pycmd.info.source is None:
+            log_file = log_dir / f"{timestamp}.log"
+        else:
+            log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}.log"
 
     try:
         with (pycmd.log.init_hook(),
@@ -133,5 +140,5 @@ def module_main() -> None:
     pycmd.settings.update_user(os.getenv("PYCMD_OPTIONS"))
     pycmd.settings.update_user(pycmd_args.pycmd)
 
-    import pycmd.main as module
+    import pycmd.main as module  # ty:ignore[unresolved-import]
     pycmd.run.exec(module)
