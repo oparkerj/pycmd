@@ -1,4 +1,6 @@
+import functools
 import io
+import logging
 import os
 import pycmd
 import signal
@@ -8,11 +10,30 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Callable, Generator
+
+# kwargs for run to hide cmd but show output
+THRU = {
+    "display": False
+}
+
+# kwargs for run to hide cmd and output
+HIDDEN = {
+    "display": False,
+    "output_stdout": False,
+    "output_stderr": False
+}
+
+# kwargs for run to disable all output
+SILENT = {
+    "display": False,
+    "output_stdout": None,
+    "output_stderr": None
+}
 
 
 def quote(v) -> str:
@@ -90,6 +111,8 @@ def run(args,
         capture_stderr=True,
         check=True,
         display=True,
+        output_stdout=True,
+        output_stderr=True,
         **kwargs) -> subprocess.CompletedProcess:
     """
     Wrapper for subprocess.Popen, similar to subprocess.run. Sends subprocess
@@ -99,6 +122,10 @@ def run(args,
     :param capture_stderr: If True, stderr will be captured.
     :param check: Whether to check the return code of the process.
     :param display: Whether the command is printed or logged internally.
+    :param output_stdout: If True, stdout is forwarded to sys.stdout. If False,
+        stdout is only logged internally. If None, no output is recorded.
+    :param output_stderr: If True, stdout is forwarded to sys.stdout. If False,
+        stdout is only logged internally. If None, no output is recorded.
     :param kwargs: Arguments forwarded to subprocess.Popen.
     :return:
     """
@@ -116,16 +143,47 @@ def run(args,
                                 bufsize=0,
                                 text=True,
                                 **kwargs)
-        stdout_reader = StreamReader(proc.stdout, sys.stdout, capture_stdout)
-        stderr_reader = StreamReader(proc.stderr, sys.stderr, capture_stderr)
-        stdout = stdout_reader.get()
-        stderr = stderr_reader.get()
-        proc.wait()
+        hidden = pycmd.log.HIDDEN
+        stdout_dest = sys.stdout if output_stdout else (
+            pycmd.log.stream(hidden) if output_stdout is False else None)
+        stderr_dest = sys.stderr if output_stderr else (
+            pycmd.log.stream(logging.ERROR) if output_stderr is False else None)
+
+        try:
+            stdout_reader = StreamReader(proc.stdout,
+                                         stdout_dest,
+                                         capture_stdout)
+            stderr_reader = StreamReader(proc.stderr,
+                                         stderr_dest,
+                                         capture_stderr)
+            stdout = stdout_reader.get()
+            stderr = stderr_reader.get()
+            proc.wait()
+        finally:
+            if output_stdout is False:
+                cast(pycmd.log.StreamLogger, stdout_dest).close()
+            if output_stderr is False:
+                cast(pycmd.log.StreamLogger, stderr_dest).close()
 
     result = subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
     if check:
         result.check_returncode()
     return result
+
+
+@functools.wraps(run)
+def run_thru(*args, **kwargs):
+    return run(*args, **THRU, **kwargs)
+
+
+@functools.wraps(run)
+def run_hidden(*args, **kwargs):
+    return run(*args, **HIDDEN, **kwargs)
+
+
+@functools.wraps(run)
+def run_silent(*args, **kwargs):
+    return run(*args, **SILENT, **kwargs)
 
 
 class StreamReader:
@@ -149,7 +207,8 @@ class StreamReader:
         for s in iter(lambda: self.stream.read(io.DEFAULT_BUFFER_SIZE), ""):
             if self._result is not None:
                 self._result += s
-            print(s, file=self.target, end="")
+            if self.target is not None:
+                print(s, file=self.target, end="")
 
     def get(self) -> str | None:
         """Block until the stream is complete and return the captured output."""

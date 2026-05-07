@@ -17,7 +17,9 @@ SUFFIX = ".log"
 TEMP_SUFFIX = ".tmp"
 
 # Custom log level for pycmd internal logs
+HIDDEN = logging.INFO - 4
 PYCMD = logging.INFO - 5
+logging.addLevelName(HIDDEN, "HIDDEN")
 logging.addLevelName(PYCMD, "PYCMD")
 
 _logger = None  # Cached value for get_logger
@@ -35,6 +37,11 @@ def get_logger() -> "logging.Logger":
     _logger.setLevel(PYCMD)
     _logger.addHandler(logging.NullHandler())
     return _logger
+
+
+def stream(level) -> StreamLogger:
+    """Get a line-buffered stream which outputs logs at the given level."""
+    return StreamLogger(None, get_logger(), level)
 
 
 def write(msg, *args, **kwargs) -> None:
@@ -235,6 +242,8 @@ class StreamLogger(io.TextIOBase):
 
     def write(self, s: str) -> int:
         self._log(s)
+        if self._stream is None:
+            return len(s)
         return self._stream.write(s)
 
     def flush(self) -> None:
