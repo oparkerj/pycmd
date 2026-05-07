@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Generator
 
+SUFFIX = ".log"
 TEMP_SUFFIX = ".tmp"
 
 # Custom log level for pycmd internal logs
@@ -141,7 +142,7 @@ def prune(keep: int) -> None:
     if not log_dir:
         return
 
-    logs = sorted(log_dir.glob("*.log"))
+    logs = sorted(log_dir.glob(f"*{SUFFIX}"))
     remove = logs if keep == 0 else logs[:-keep]
 
     for p in remove:

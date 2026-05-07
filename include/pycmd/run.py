@@ -75,9 +75,9 @@ def main(module: "ModuleType") -> None:
             and (log_dir := pycmd.log.init_log_dir())):
         timestamp = DateTime.now().strftime("%Y%m%d%H%M%S%f")
         if pycmd.info.source is None:
-            log_file = log_dir / f"{timestamp}.log"
+            log_file = log_dir / f"{timestamp}{pycmd.log.SUFFIX}"
         else:
-            log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}.log"
+            log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}{pycmd.log.SUFFIX}"
 
     try:
         with (pycmd.log.init_hook(),
