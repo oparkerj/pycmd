@@ -84,6 +84,17 @@ the content.
 * If none of the above rules match, will attempt to convert the value to `int`, and
 if that fails, the value is the verbatim string.
 
+## Composing
+pycmd modules are meant to be composed to create useful utilities. Neighbor modules
+can be imported via `pycmd.module`. See the [pycmd.path](#pycmd_path) option for
+controlling where pycmd searches for neighbor modules.
+
+When importing a module from `pycmd.module`, pycmd searches each directory in
+`pycmd.path` for a file with the given name (no .py extension). After checking
+`pycmd.path`, the directory of the main module (`pycmd.info.source.parent`) is checked
+if not already. This means adjacent modules can be imported without adjusting the
+path.
+
 ## Errors
 The only exception that pycmd catches by default is `pycmd.run.Error`. This exception
 is usually raised by calling `pycmd.error(str)`, and is handled by both
