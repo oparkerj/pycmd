@@ -2,10 +2,10 @@ import importlib.abc
 import importlib.machinery
 import importlib.util
 import os
-import pycmd
 import sys
-
 from pathlib import Path
+
+import pycmd
 
 MAIN = "pycmd.main"
 PREFIX = __name__ + "."

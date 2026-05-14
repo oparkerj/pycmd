@@ -2,15 +2,15 @@ import functools
 import io
 import logging
 import os
-import pycmd
 import signal
 import subprocess
 import sys
-
 from contextlib import contextmanager
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING, cast
+from typing import cast, TYPE_CHECKING
+
+import pycmd
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

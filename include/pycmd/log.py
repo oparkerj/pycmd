@@ -1,14 +1,14 @@
 import io
 import logging
 import os
-import pycmd
 import sys
 import traceback
-
 from contextlib import contextmanager
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
+
+import pycmd
 
 if TYPE_CHECKING:
     from typing import Generator

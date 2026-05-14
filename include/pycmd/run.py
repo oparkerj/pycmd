@@ -1,13 +1,13 @@
 import argparse
 import os
-import pycmd
 import sys
-
 from contextlib import closing
 from datetime import datetime as DateTime
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pycmd
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -85,7 +85,7 @@ def main(module: "ModuleType") -> None:
 
     log_file = None
     log_level = pycmd.settings.get("log_level", "NOTSET")
-    
+
     if (pycmd.settings.get("log", True)
             and (log_dir := pycmd.log.init_log_dir())):
         timestamp = DateTime.now().strftime("%Y%m%d%H%M%S%f")
