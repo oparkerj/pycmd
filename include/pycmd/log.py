@@ -247,4 +247,5 @@ class StreamLogger(io.TextIOBase):
         return self._stream.write(s)
 
     def flush(self) -> None:
-        return self._stream.flush()
+        if self._stream is not None:
+            self._stream.flush()
