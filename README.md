@@ -84,6 +84,16 @@ the content.
 * If none of the above rules match, will attempt to convert the value to `int`, and
 if that fails, the value is the verbatim string.
 
+## Errors
+The only exception that pycmd catches by default is `pycmd.run.Error`. This exception
+is usually raised by calling `pycmd.error(str)`, and is handled by both
+[exec](#exec) and [main](#default-pycmd-setup). When running the
+[default pycmd setup](#default-pycmd-setup), the exception will be printed and the
+program exits with status code 1.
+
+Since this represents a fatal error in the program, this error inherits from
+`BaseException`.
+
 ## Execution
 Command format: `pycmd <SCRIPT> [ARGS...]`  
 Executing pycmd does the following:
@@ -95,6 +105,9 @@ the exec phase.
 `pycmd.run.exec(module)` is executed on the main module. This searches for a function
 with "exec" metadata, and calls it. If such a function doesn't exist,
 `pycmd.run.main(module)` is called instead, which runs the default pycmd setup.
+
+If `pycmd.run.Error` is caught, `exit(1)` is called. 
+
 ### Default pycmd setup
 This is the default configuration that pycmd executes unless an "exec" function is
 defined on the main module. The default setup performs the following actions:
@@ -107,3 +120,6 @@ to the pycmd logger.
 * Execute the main function.
 * Log the execution time of the main function.
 * Prune log files.
+
+If `pycmd.run.Error` is caught, the exception will be printed and continue to
+propagate.

@@ -6,6 +6,7 @@ from . import run
 from . import settings
 
 args: list[str] | None = None
+error = run.error
 get_logger = log.get_logger
 exec = meta.exec
 main = meta.main

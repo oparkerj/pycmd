@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from types import ModuleType
-    from typing import Generator
+    from typing import Generator, Never
 
 
 class MainModuleInfo:
@@ -21,6 +21,21 @@ class MainModuleInfo:
         self.module: "ModuleType" = sys.modules["__main__"]
         source = getattr(self.module, "__file__", None)
         self.source: Path | None = Path(source) if source else None
+
+
+class Error(BaseException):
+    """
+    Represents an error in the program which causes it to exit immediately
+    with an error status.
+    """
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
+def error(msg: str) -> "Never":
+    """Raise an error which prints and exits with an error status."""
+    raise Error(msg)
 
 
 def _one[T](gen: "Generator[T, None, None]",
@@ -89,6 +104,9 @@ def main(module: "ModuleType") -> None:
             start_time = DateTime.now()
             try:
                 main_func()
+            except Error as e:
+                print(e)
+                raise
             finally:
                 end_time = DateTime.now()
                 pycmd.log.write("END")
@@ -116,6 +134,8 @@ def exec(module: "ModuleType") -> None:
     pycmd.info.module = module
     try:
         exec_func()
+    except Error:
+        exit(1)
     finally:
         pycmd.info.module = old_module
 
