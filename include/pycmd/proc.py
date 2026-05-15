@@ -255,7 +255,7 @@ class StreamReader:
 
     def _read(self) -> None:
         """Thread which forwards and captures stream output."""
-        for s in iter(lambda: self.stream.read(io.DEFAULT_BUFFER_SIZE), ""):
+        for s in iter(lambda: self.stream.read(1), ""):
             if self._result is not None:
                 self._result += s
             if self.target is not None:
