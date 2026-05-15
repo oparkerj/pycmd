@@ -2,6 +2,7 @@ import functools
 import io
 import logging
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -14,7 +15,7 @@ import pycmd
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Callable, Generator
+    from typing import Callable, Generator, Sequence
 
 # kwargs for run to hide cmd but show output
 THRU = {
@@ -36,13 +37,12 @@ SILENT = {
 }
 
 
-def quote(v) -> str:
-    """Quote the value if it contains whitespace."""
-    s = str(v)
-    return f"\"{s}\"" if " " in s else s
+def quote(v: object) -> str:
+    """Quote the value to display as a CLI argument."""
+    return shlex.quote(str(v))
 
 
-def quote_all(args: "Iterable") -> str:
+def join(args: "Iterable[object]") -> str:
     """Quote values and join by whitespace."""
     return " ".join(map(quote, args))
 
@@ -64,23 +64,63 @@ def relative(path: str | os.PathLike, base: str | os.PathLike) \
         return path
 
 
-def display_args(args: str | list[str], cwd: str | os.PathLike | None) -> str:
+def display_args(args: "Sequence[object]", cwd: str | os.PathLike) -> str:
     """
     Get a string which displays the command being executed.
-    The directory will be displayed if the working directory
-    is different from the cwd.
+    The first argument will be made relative if it is an existing file
+    under the cwd.
     :param args: Command args.
     :param cwd: Command working directory.
     :return: Command display string.
     """
+    rel = relative(str(args[0]), cwd)
+    abs_cmd = Path(cwd, rel)
+    content = join([rel, args[1:]] if abs_cmd.is_file() else args)
+    return display_cmd(content, cwd)
+
+
+def display_cmd(content: str, cwd: str | os.PathLike) -> str:
+    """
+    Get a string which displays the command being executed.
+    The directory will be displayed if the working directory
+    is different from the cwd.
+    :param content: Command content.
+    :param cwd: Command working directory.
+    :return: Command display string.
+    """
+    return f"$ {content}" if Path.cwd().samefile(cwd) \
+        else f"[{Path(cwd).absolute().resolve()}]$ {content}"
+
+
+def process_args(
+        args: "Sequence[object] | str | os.PathLike",
+        shell: bool,
+        cwd: str | os.PathLike | None,
+) -> "tuple[Sequence[str] | str, str | os.PathLike]":
+    """
+    Convert the input to suitable Popen arguments and get a display string
+    for the command.
+    :param args: Command arguments.
+    :param shell: Whether shell=True for the command.
+    :param cwd: Command working directory.
+    :return:
+    """
     cmd_cwd = Path(cwd or ".")
+
+    if shell:
+        exec_args = (str(args)
+                     if isinstance(args, (str, os.PathLike)) else join(args))
+        return exec_args, display_cmd(exec_args, cmd_cwd)
+
     if isinstance(args, str):
-        content = args
+        exec_args = shlex.split(args)
+    elif isinstance(args, os.PathLike):
+        exec_args = [str(args)]
     else:
-        args[0] = str(relative(args[0], cmd_cwd))
-        content = quote_all(args)
-    return f"$ {content}" if cmd_cwd.samefile(Path.cwd()) \
-        else f"[{cmd_cwd.absolute().resolve()}]$ {content}"
+        exec_args = list(map(str, args))
+
+    args_str = display_args(exec_args, cmd_cwd)
+    return exec_args, args_str
 
 
 @contextmanager
@@ -91,7 +131,7 @@ def _forward_interrupts(get_proc: "Callable[[], subprocess.Popen | None]") \
     :param get_proc: Function to get the active subprocess.
     """
 
-    def _handler(signum, frame):
+    def _handler(signum, _frame):
         p = get_proc()
         if p:
             pycmd.log.write(f"Forwarding signal {signum} to subprocess")
@@ -129,7 +169,12 @@ def run(args,
     :param kwargs: Arguments forwarded to subprocess.Popen.
     :return:
     """
-    args_str = display_args(args, kwargs.get("cwd"))
+    exec_args, args_str = process_args(
+        args,
+        cast(bool, kwargs.get("shell")),
+        cast(str | os.PathLike | None, kwargs.get("cwd"))
+    )
+
     if display:
         print(args_str)
     else:
@@ -137,7 +182,7 @@ def run(args,
 
     proc = None
     with _forward_interrupts(lambda: proc):
-        proc = subprocess.Popen(args,
+        proc = subprocess.Popen(exec_args,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 bufsize=0,

@@ -98,7 +98,7 @@ def main(module: "ModuleType") -> None:
         with (pycmd.log.init_hook(),
               pycmd.log.init_file(log_file, log_level),
               pycmd.log.exception_logger()):
-            pycmd.log.write(f"PYCMD: {pycmd.proc.quote_all(sys.argv)}")
+            pycmd.log.write(f"PYCMD: {pycmd.proc.join(sys.argv)}")
             pycmd.log.write(f"CWD: {os.getcwd()}")
             pycmd.log.write("BEGIN")
             start_time = DateTime.now()
