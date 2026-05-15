@@ -15,7 +15,7 @@ import pycmd
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Callable, Generator, Sequence
+    from typing import Callable, Generator, Literal, Sequence
 
 # kwargs for run to hide cmd but show output
 THRU = {
@@ -146,14 +146,16 @@ def _forward_interrupts(get_proc: "Callable[[], subprocess.Popen | None]") \
         signal.signal(signal.SIGINT, old)
 
 
-def run(args,
-        capture_stdout=True,
-        capture_stderr=True,
-        check=True,
-        display=True,
-        output_stdout=True,
-        output_stderr=True,
-        **kwargs) -> subprocess.CompletedProcess:
+def run(
+        args: "Sequence[object] | str | os.PathLike",
+        capture_stdout: bool = True,
+        capture_stderr: bool = True,
+        check: "bool | Literal['check']" = False,
+        display: bool = True,
+        output_stdout: bool = True,
+        output_stderr: bool = True,
+        **kwargs
+) -> subprocess.CompletedProcess:
     """
     Wrapper for subprocess.Popen, similar to subprocess.run. Sends subprocess
     output to stdout and stderr in real time, capturing the output if desired.
@@ -210,9 +212,13 @@ def run(args,
             if output_stderr is False:
                 cast(pycmd.log.StreamLogger, stderr_dest).close()
 
-    result = subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
-    if check:
+    result = subprocess.CompletedProcess(exec_args, proc.returncode, stdout, stderr)
+
+    if check == "check":
         result.check_returncode()
+    elif check and result.returncode:
+        pycmd.error(f"Process exited with code {result.returncode}")
+
     return result
 
 
