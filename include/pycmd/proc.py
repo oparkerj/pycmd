@@ -44,7 +44,12 @@ def quote(v: object) -> str:
 
 def join(args: "Iterable[object]") -> str:
     """Quote values and join by whitespace."""
-    return " ".join(map(quote, args))
+    return shlex.join(map(str, args))
+
+
+def shell_join(args: "Iterable[object]") -> str:
+    """Similar to join but only values with whitespace are quoted."""
+    return " ".join(shlex.quote(v) if " " in v else v for v in map(str, args))
 
 
 def relative(path: str | os.PathLike, base: str | os.PathLike) \
@@ -108,8 +113,9 @@ def process_args(
     cmd_cwd = Path(cwd or ".")
 
     if shell:
-        exec_args = (str(args)
-                     if isinstance(args, (str, os.PathLike)) else join(args))
+        exec_args = (os.fspath(args)
+                     if isinstance(args, (str, os.PathLike))
+                     else shell_join(args))
         return exec_args, display_cmd(exec_args, cmd_cwd)
 
     if isinstance(args, str):
