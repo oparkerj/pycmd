@@ -3,7 +3,7 @@ import os
 import sys
 from contextlib import closing
 from datetime import datetime as DateTime
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -11,7 +11,7 @@ import pycmd
 
 if TYPE_CHECKING:
     from types import ModuleType
-    from typing import Generator, Never
+    from typing import Any, Callable, cast, Generator, Never, Sequence
 
 
 class MainModuleInfo:
@@ -66,6 +66,20 @@ def _one[T](gen: "Generator[T, None, None]",
         raise ValueError(extra_err)
 
 
+def wrap[**P, R](func: "Callable[P, R]", cmd: "Sequence[str] | None" = None) \
+        -> "Callable[P, R]":
+    """
+    Wrap a function so that it executes as a pycmd.
+    """
+
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        pycmd.settings.update_user(os.getenv("PYCMD_OPTIONS"))
+        run_main(partial(func, *args, **kwargs), cmd if cmd is not None else ())
+
+    return _wrapper
+
+
 def main(module: "ModuleType") -> None:
     """
     Run the function in the module which is marked with "main" metadata.
@@ -76,10 +90,13 @@ def main(module: "ModuleType") -> None:
                      "Module missing 'main' function",
                      "At most one 'main' function is permitted in a module")
 
+    run_main(cast("Callable[[], Any]", main_func), sys.argv)
+
+
+def run_main(main_func: "Callable[[], Any]", cmd: "Sequence[str]") -> None:
     if not callable(main_func):
         raise TypeError(f"'{main_func}' is not callable")
 
-    pycmd.settings.clear()
     pycmd.settings.update(pycmd.meta.get(main_func, "settings"))
     pycmd.settings.update(pycmd.settings.user)
 
@@ -92,13 +109,14 @@ def main(module: "ModuleType") -> None:
         if pycmd.info.source is None:
             log_file = log_dir / f"{timestamp}{pycmd.log.SUFFIX}"
         else:
-            log_file = log_dir / f"{timestamp}_{pycmd.info.source.name}{pycmd.log.SUFFIX}"
+            log_file = log_dir / (f"{timestamp}_{pycmd.info.source.name}"
+                                  f"{pycmd.log.SUFFIX}")
 
     try:
         with (pycmd.log.init_hook(),
               pycmd.log.init_file(log_file, log_level),
               pycmd.log.exception_logger()):
-            pycmd.log.write(f"PYCMD: {pycmd.proc.join(sys.argv)}")
+            pycmd.log.write(f"PYCMD: {pycmd.proc.join(cmd)}")
             pycmd.log.write(f"CWD: {os.getcwd()}")
             pycmd.log.write("BEGIN")
             start_time = DateTime.now()
